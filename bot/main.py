@@ -1,7 +1,7 @@
 import asyncio
 import httpx
 from aiogram import Bot, Dispatcher
-from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 from aiogram.filters import Command
 from config import BOT_TOKEN, API_BASE
 
@@ -25,23 +25,27 @@ async def get_favorites(telegram_id: str):
 @dp.message(Command("start"))
 async def start_handler(message: Message):
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="Открыть СкидкоЛов", web_app={"url": "https://your-mini-app-url.com"})]  # Replace with actual URL
+        [InlineKeyboardButton(text="Открыть СкидкоЛов", web_app=WebAppInfo(url="https://your-mini-app-url.com"))]  # Replace with actual URL
     ])
     await message.reply("Привет! Я бот СкидкоЛов. Нажимай кнопку, чтобы открыть приложение с скидками!", reply_markup=keyboard)
 
 @dp.message(Command("favorites"))
 async def favorites_handler(message: Message):
+    if not message.from_user:
+        await message.reply("Ошибка: пользователь не найден")
+        return
+
     telegram_id = str(message.from_user.id)
     user = await get_user(telegram_id)
     if not user:
         await message.reply("Сначала авторизуйся в Mini App!")
         return
-    
+
     favorites = await get_favorites(telegram_id)
     if not favorites:
         await message.reply("У тебя нет избранных товаров.")
         return
-    
+
     text = "Твои избранные товары:\n"
     for fav in favorites:
         text += f"- {fav['product_name']}: {fav['product_price']}₽\n"
